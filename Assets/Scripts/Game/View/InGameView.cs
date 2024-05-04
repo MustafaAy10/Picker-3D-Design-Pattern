@@ -8,7 +8,7 @@ using Game.PickerSystem.Base;
 using Game.View.Helpers;
 using Picker.Services;
 using UnityEngine;
-using Zenject;
+ 
 
 namespace Picker.View
 {

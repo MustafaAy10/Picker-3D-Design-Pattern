@@ -4,7 +4,7 @@ using Game.PickerSystem.Base;
 using Game.PlatformSystem.Base;
 using UnityEngine;
  
-using Zenject;
+ 
 
 namespace Game.LevelSystem
 {

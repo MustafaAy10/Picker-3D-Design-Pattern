@@ -12,12 +12,7 @@ namespace Game.Managers
     public class AssetManager : GenericSingleton<AssetManager>
     {
         private const string LEVEL_PATH = "Levels/Level";
-        private const string BALLPACK_PATH = "BallPacks";
-        private const string PLATFORM_PATH = "PlatformPrefabs";
 
-        private List<PlatformBase> _platformBases;
-        private List<BallPackBase> _ballPackBases;
-        
         public Material GroundMaterial;
         public Material PickerMaterial;
         

@@ -9,8 +9,8 @@ namespace Game.LevelSystem
     [CreateAssetMenu(fileName = "LevelData", menuName = "Level Datas/New Level", order = 1)]
     public class LevelData : ScriptableObject
     {
-        public List<PlatformData> PlatformDatas;
-        public List<BallPackData> BallPackDatas;
+        public List<PlatformData> PlatformDatas = new List<PlatformData>();
+        public List<BallPackData> BallPackDatas = new List<BallPackData>();
     }
     
     [Serializable]

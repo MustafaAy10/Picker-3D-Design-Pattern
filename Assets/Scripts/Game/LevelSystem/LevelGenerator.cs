@@ -20,7 +20,7 @@ namespace Game.LevelSystem
         {
             _platformFactory = platformFactory;
             _pickerBase = pickerBase;
-            _pickerStartPosition = new Vector3(0,0.6f,2.5f);
+            // _pickerStartPosition = new Vector3(0,0.6f,2.5f);
             _levelIndex = 1;
             
         }
@@ -60,7 +60,7 @@ namespace Game.LevelSystem
                 ball.transform.position = ballPack.Position;
             }
             
-            _pickerBase.transform.position = _pickerStartPosition;
+            // _pickerBase.transform.position = _pickerStartPosition;
         }
     }
 }

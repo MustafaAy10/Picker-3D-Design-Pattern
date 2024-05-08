@@ -17,15 +17,16 @@ namespace Picker.Game.Editor
     {
         private List<string> _savedLevelNames = new List<string>();
         private string NewLevelName = string.Empty;
+        private List<int> checkPointCounts = new List<int>();
+        int checkPointCount = 0;
+
         private const string LOAD_LEVEL_SO_PATH = "NewLevels";
         private const string SAVE_LEVEL_SO_PATH = "Resources/NewLevels";
         private const string PLATFORM_PREFABS_PATH = "PlatformPrefabs";
         private const string BALLPACK_PREFABS_PATH = "BallPacks";
-        #region Variables
 
         List<PlatformBase> platformPrefabs;
         List<BallPackBase> ballPackPrefabs;
-        #endregion
 
         [MenuItem("Tools/EditorLevelBuilder")]
         private static void Init()
@@ -38,14 +39,30 @@ namespace Picker.Game.Editor
         {
             platformPrefabs = Resources.LoadAll<PlatformBase>(PLATFORM_PREFABS_PATH).ToList();
             ballPackPrefabs = Resources.LoadAll<BallPackBase>(BALLPACK_PREFABS_PATH).ToList();
+
+            ResetCheckPointCounts();
+        }
+
+        // It is useful to refresh checkpoints when an gameObject added or removed from scene, it might me CheckPoint, we are checking that.
+        private void OnHierarchyChange()
+        {
+            Debug.Log("OnHierarchyChanged() called...");
+
+            IsCheckPointCountChanged();
         }
 
         private void OnGUI()
         {
-            NewLevelName = GUI.TextField(new Rect(10, 10, position.width, 20), NewLevelName, 25);
-
-            if (GUI.Button(new Rect(10, 40, position.width, 20), "Save Level"))
+            for (int i = 0; i < checkPointCounts.Count; i++)
             {
+                checkPointCounts[i] = EditorGUILayout.IntField($"CheckPoints ({i}) Count: ", checkPointCounts[i]);
+            }
+
+            NewLevelName = EditorGUILayout.TextField("Level Name : ", NewLevelName);
+
+            if (GUILayout.Button("Save Level"))
+            {
+                // Check if Level Name is invalid, empty or there is a filename with the same name in the path.
                 if (!string.IsNullOrEmpty(NewLevelName)
                     && NewLevelName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
                     && !File.Exists(Path.Combine(Application.dataPath, SAVE_LEVEL_SO_PATH, NewLevelName + ".asset")))
@@ -62,12 +79,14 @@ namespace Picker.Game.Editor
                 }
             }
 
-            if (GUI.Button(new Rect(10, 70, position.width, 20), "Show Saved Levels"))
+            GUILayout.Space(10);
+
+            if (GUILayout.Button("Show Saved Levels"))
             {
                 _savedLevelNames = GetLevelNames();
             }
 
-            GUILayout.BeginArea(new Rect(10, 150, position.width, position.height));
+            GUILayout.Space(50);
 
             foreach (var t in _savedLevelNames)
             {
@@ -83,19 +102,56 @@ namespace Picker.Game.Editor
             {
                 ClearScene();
             }
-
-            GUILayout.EndArea();
-
-
         }
 
+        // Is CheckPoint Platform Count Changed On Scene?
+        private void IsCheckPointCountChanged()
+        {
+            // CheckPointsCount on scene before OnHierarchyChange is equal to checkpoints count on OnHierarchyChange?
+            // This means, is there a new CheckPoint added or removed on Scene? If equal, it means there is no change, so no need to ResetCheckPointCounts().
+            if (checkPointCounts.Count == GetCheckPointsCountOnScene())
+                return;
+
+            ResetCheckPointCounts();
+        }
+
+        // Finds the CheckPoints platforms count on scene.
+        private int GetCheckPointsCountOnScene()
+        {
+            return FindObjectsOfType<CheckPoint>().Length;
+        }
+
+        // Clear and Add checkPointcounts list because we cant show enough IntField and save them on OnGUI otherwise.
+        private void ResetCheckPointCounts()
+        {
+            checkPointCounts.Clear();
+
+            var count = GetCheckPointsCountOnScene();
+
+            for (int i = 0; i < count; i++)
+            {
+                checkPointCounts.Add(0);
+            }
+        }
+
+        private void LoadCheckPoints(List<int> loadedCheckPoints)
+        {
+            checkPointCounts.Clear();
+            checkPointCounts.AddRange(loadedCheckPoints);
+        }
+
+        // First we put platforms and ballpacks on scene properly,
+        // then this method find and order them.
         private void SaveLevelAsScriptableObject(string levelName)
         {
             // Ordering By position.z improve the readibility of LevelDataScriptableObject on inspector.
             // Which platform or ballpack come first, which one is ahead of other, we can easily view on inspector by order.
+            // Besides, ordering is necessary for AlignPlatforms() method, current platform , previous platform can be known by this way.
             var itemsToSavePlatforms = FindObjectsOfType<PlatformBase>().OrderBy(x => x.transform.position.z).ToArray();
             var itemsToSaveBallPacks = FindObjectsOfType<BallPackBase>().OrderBy(x => x.transform.position.z).ToArray();
-
+            
+            // Debug.Log($"CheckPointCounts.count = {checkPointCounts.Count}  checkPoints1: {checkPointCounts[0]}  checkPoints2: {checkPointCounts[1]}");
+            
             AlignPlatforms(itemsToSavePlatforms);
             CreateScriptableObject(levelName, itemsToSavePlatforms, itemsToSaveBallPacks);
         }
@@ -109,7 +165,7 @@ namespace Picker.Game.Editor
                     continue;
 
                 float z = 0;
-                
+
                 if (platformsToAlign[i - 1].PlatformType == PlatformType.CHECKPOINT)
                 {
                     z = platformsToAlign[i - 1].transform.Find("BottomPlatform").GetComponent<Renderer>().bounds.size.z;
@@ -119,7 +175,7 @@ namespace Picker.Game.Editor
                     z = platformsToAlign[i - 1].transform.Find("Mesh").GetComponent<Renderer>().bounds.size.z;
                 }
 
-                platformsToAlign[i].transform.position = platformsToAlign[i-1].transform.position + Vector3.forward * z;
+                platformsToAlign[i].transform.position = platformsToAlign[i - 1].transform.position + Vector3.forward * z;
             }
         }
 
@@ -127,13 +183,15 @@ namespace Picker.Game.Editor
         {
             LevelData levelData = ScriptableObject.CreateInstance<LevelData>();
 
+            int checkPointCounter = 0;
+
             foreach (var item in itemsToSavePlatforms)
             {
                 PlatformData platformData = new PlatformData();
 
                 platformData.Position = item.transform.position;
                 platformData.PlatformType = item.PlatformType;
-                platformData.CheckPointCount = 0;
+                platformData.CheckPointCount = item is CheckPoint ? checkPointCounts[checkPointCounter++] : 0;
 
                 levelData.PlatformDatas.Add(platformData);
             }
@@ -161,9 +219,11 @@ namespace Picker.Game.Editor
         {
             var filePath = Path.Combine(LOAD_LEVEL_SO_PATH, fileName);
             var levelData = Resources.Load<LevelData>(filePath);
-
+            NewLevelName = fileName;
             Selection.activeObject = levelData;
-            Debug.Log($"Resources.Load<LevelData>() levelPath: {filePath} fileName: {fileName} ");
+            
+            // Debug.Log($"Resources.Load<LevelData>() levelPath: {filePath} fileName: {fileName} ");
+            
             LoadScene(levelData);
         }
 
@@ -182,6 +242,17 @@ namespace Picker.Game.Editor
                 var ballPack = InstantiateBallPack(ballPackItem.BallPackType);
                 ballPack.transform.position = ballPackItem.Position;
             }
+
+            var list = levelData.PlatformDatas.Where(x => x.PlatformType == PlatformType.CHECKPOINT).Select(x => x.CheckPointCount).ToList();
+            
+            LoadCheckPoints(list);
+            
+            //for (int i = 0; i < list.Count; i++)
+            //{
+            //    Debug.Log($"[EditorLevelBuilder] LoadScene -> list.Count : {list.Count}  list[{i}] : {list[i]}");
+
+            //}
+
         }
 
         private PlatformBase InstantiatePlatform(PlatformType platformType)
@@ -216,7 +287,7 @@ namespace Picker.Game.Editor
             DirectoryInfo hdDirectoryInWhichToSearch = new DirectoryInfo(Path.Combine(Application.dataPath, SAVE_LEVEL_SO_PATH));
             FileSystemInfo[] filesAndDirs = hdDirectoryInWhichToSearch.GetFileSystemInfos("*" + partialName + "*.asset");
 
-            Debug.Log("[EditorLevelBuilder] Application.dataPath: " + Application.dataPath);
+            // Debug.Log("[EditorLevelBuilder] Application.dataPath: " + Application.dataPath);
 
             return filesAndDirs.Select(foundFile => Path.GetFileNameWithoutExtension(foundFile.Name)).ToList();
         }

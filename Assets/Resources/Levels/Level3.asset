@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed290c4995c168a47b0f57c0d65870c3, type: 3}
-  m_Name: Level2
+  m_Name: Level3
   m_EditorClassIdentifier: 
   PlatformDatas:
   - Position: {x: 0, y: 0, z: 0}
@@ -18,13 +18,13 @@ MonoBehaviour:
     CheckPointCount: 0
   - Position: {x: 0, y: 0, z: 60}
     PlatformType: 1
-    CheckPointCount: 4
+    CheckPointCount: 8
   - Position: {x: 0, y: 0, z: 70}
     PlatformType: 0
     CheckPointCount: 0
   - Position: {x: 0, y: 0, z: 130}
     PlatformType: 1
-    CheckPointCount: 5
+    CheckPointCount: 10
   - Position: {x: 0, y: 0, z: 140}
     PlatformType: 2
     CheckPointCount: 0
